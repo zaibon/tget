@@ -4,18 +4,24 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"path/filepath"
+	"net"
+	"net/url"
 	"strings"
 	"sync"
 
+	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/agent"
+
 	"os"
 
+	"github.com/tmc/scp"
 	"github.com/zaibon/tget/api/betaseries"
 	"github.com/zaibon/tget/api/t411"
 )
 
 func downloadShow(title string) error {
 	cfg := loadConfig()
+
 	t411API := t411.New(cfg.T411Token)
 	bs := betaseries.New(cfg.BetaseriesToken)
 
@@ -32,18 +38,7 @@ func downloadShow(title string) error {
 			wg.Add(1)
 			go func(title string, season, episode int) {
 				defer wg.Done()
-
-				name := fmt.Sprintf("%s_S%02dE%02d", title, season, episode)
-				oldPath, err := t411API.DownloadTorrent(title, season, episode)
-				if err != nil {
-					log.Printf("Error downloading %s", name)
-				}
-
-				newPath := storePath(cfg.TorrentDirectory, name)
-				if err = move(oldPath, newPath); err != nil {
-					log.Printf("Error moving %s to %s : %v", oldPath, newPath, err)
-				}
-
+				download(title, season, episode, cfg.TorrentDirectory, t411API)
 			}(title, season, episode)
 		}
 	}
@@ -72,18 +67,7 @@ func downloadSaison(title string, season int) error {
 		wg.Add(1)
 		go func(title string, season, episode int) {
 			defer wg.Done()
-
-			name := fmt.Sprintf("%s_S%02dE%02d", title, season, episode)
-			oldPath, err := t411API.DownloadTorrent(title, season, episode)
-			if err != nil {
-				log.Printf("Error downloading %s", name)
-			}
-
-			newPath := storePath(cfg.TorrentDirectory, name)
-			if err = move(oldPath, newPath); err != nil {
-				log.Printf("Error moving %s to %s : %v", oldPath, newPath, err)
-			}
-
+			download(title, season, episode, cfg.TorrentDirectory, t411API)
 		}(title, season, episode)
 	}
 
@@ -97,27 +81,51 @@ func downloadEpisode(title string, season, episode int) error {
 	cfg := loadConfig()
 	t411API := t411.New(cfg.T411Token)
 
+	return download(title, season, episode, cfg.TorrentDirectory, t411API)
+}
+
+func download(title string, season int, episode int, destDir string, t411API *t411.T411) error {
 	name := fmt.Sprintf("%s_S%02dE%02d", title, season, episode)
+	log.Printf("download %s", name)
+
 	oldPath, err := t411API.DownloadTorrent(title, season, episode)
 	if err != nil {
-		log.Printf("Error downloading %s", name)
+		log.Printf("Error downloading %s: %v", name, err)
+		return err
 	}
 
-	newPath := storePath(cfg.TorrentDirectory, name)
+	newPath := storePath(destDir, name)
 	if err = move(oldPath, newPath); err != nil {
 		log.Printf("Error moving %s to %s : %v", oldPath, newPath, err)
+		return err
 	}
+	log.Printf("%s save at %s", name, newPath)
 
 	return nil
 }
 
 func storePath(dir, name string) string {
-	path := filepath.Clean(filepath.Join(dir, name+".torrent"))
+	path := dir + "/" + name + ".torrent"
 	path = strings.Replace(path, " ", "_", -1)
 	return path
 }
 
 func move(oldPath, newPath string) error {
+	defer os.Remove(oldPath)
+
+	u, err := url.Parse(newPath)
+	if err != nil {
+		return err
+	}
+
+	if u.Scheme == "ssh" {
+		return sshMove(oldPath, newPath)
+	}
+
+	return localMove(oldPath, newPath)
+}
+
+func localMove(oldPath, newPath string) error {
 	data, err := ioutil.ReadFile(oldPath)
 	if err != nil {
 		return err
@@ -126,4 +134,47 @@ func move(oldPath, newPath string) error {
 		return err
 	}
 	return os.Remove(oldPath)
+}
+
+func sshMove(oldPath, newPath string) error {
+	u, err := url.Parse(newPath)
+	if err != nil {
+		return err
+	}
+
+	// try to found way to authentify against the server
+	authMethods := []ssh.AuthMethod{}
+	if passwd, isSet := u.User.Password(); isSet {
+		authMethods = append(authMethods, ssh.Password(passwd))
+	}
+
+	agent, err := getAgent()
+	if err == nil {
+		authMethods = append(authMethods, ssh.PublicKeysCallback(agent.Signers))
+	}
+
+	client, err := ssh.Dial("tcp", u.Host, &ssh.ClientConfig{
+		User: u.User.Username(),
+		Auth: authMethods,
+	})
+	if err != nil {
+		return fmt.Errorf("Failed to dial: %s", err)
+	}
+
+	session, err := client.NewSession()
+	if err != nil {
+		return fmt.Errorf("Failed to create session: %s", err.Error())
+	}
+
+	err = scp.CopyPath(oldPath, u.Path, session)
+	if err != nil {
+		return fmt.Errorf("Failed writing file: %s", err)
+	}
+
+	return nil
+}
+
+func getAgent() (agent.Agent, error) {
+	agentConn, err := net.Dial("unix", os.Getenv("SSH_AUTH_SOCK"))
+	return agent.NewClient(agentConn), err
 }
