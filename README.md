@@ -19,6 +19,11 @@ tget config --t411-username toto --t411-password supersecret --bs-token 2345345 
 `--bs-token` 		betaseries API key. go to https://www.betaseries.com/api/ to get one  
 `--output` 		directory where to save the downloaded torrents  
 
+Output directory can be on a remote server.
+File copy is done over ssh. In the configuration, the torrent directory can be under the form
+`ssh://root@myserver:22/tmp`. tget uses the key loaded in your ssh-agent if there is one running.
+
+
 
 ## Usage
 tget support download of a full show a season or an episode.
