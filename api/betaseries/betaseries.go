@@ -87,7 +87,7 @@ func (b *BetaSeries) Show(title string) (*Show, error) {
 		log.Println("shows empty")
 		return nil, errShowNotFound
 	}
-	log.Printf("%+v", data.Shows[0])
+
 	return &data.Shows[0], nil
 }
 

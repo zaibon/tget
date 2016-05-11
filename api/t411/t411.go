@@ -132,7 +132,6 @@ func (t *T411) DownloadTorrent(title string, season, episode int) (string, error
 		log.Println(err)
 		return "", err
 	}
-	log.Printf("%s downloaded", tmpfile.Name())
 
 	return tmpfile.Name(), nil
 }
@@ -235,13 +234,11 @@ func (t *T411) DownloadTorrent(title string, season, episode int) (string, error
 
 func (t *T411) download(ID string) (io.ReadCloser, error) {
 
-	log.Printf("Start download of torrent %s", ID)
 	u, err := url.Parse(fmt.Sprintf("%s/torrents/download/%s", t.baseURL, ID))
 	if err != nil {
 		log.Println("Error parsing url: ", err)
 		return nil, err
 	}
-	log.Printf("URL : %s", u.String())
 
 	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
@@ -255,12 +252,10 @@ func (t *T411) download(ID string) (io.ReadCloser, error) {
 		return nil, err
 	}
 
-	log.Printf("Finish download of torrent %s", ID)
 	return resp.Body, err
 }
 
 func (t *T411) search(searchReq searchReq) ([]Torrent, error) {
-	log.Println("search", searchReq.URL())
 
 	req, err := http.NewRequest("GET", searchReq.URL(), nil)
 	if err != nil {

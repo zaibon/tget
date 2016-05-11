@@ -64,8 +64,6 @@ func downloadSaison(title string, season int) error {
 		return err
 	}
 
-	log.Printf("%+v", show)
-
 	detail := show.SeasonsDetails[season-1]
 	wg := sync.WaitGroup{}
 
