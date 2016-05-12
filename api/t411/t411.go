@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"sort"
 )
 
 var (
@@ -112,8 +113,10 @@ func (t *T411) DownloadTorrent(title string, season, episode int) (string, error
 	}
 
 	if len(torrents) < 1 {
-		return "", fmt.Errorf("torrent not found, %s%d%d", title, season, episode)
+		return "", fmt.Errorf("torrent not found, %sS%02dE%02d", title, season, episode)
 	}
+
+	sort.Sort(BySeeder{torrents})
 
 	r, err := t.download(torrents[0].ID)
 	if err != nil {
@@ -121,7 +124,7 @@ func (t *T411) DownloadTorrent(title string, season, episode int) (string, error
 	}
 	defer r.Close()
 
-	tmpfile, err := ioutil.TempFile("", fmt.Sprintf("%s%d%d", title, season, episode))
+	tmpfile, err := ioutil.TempFile("", fmt.Sprintf("%sS%02dE%02d", title, season, episode))
 	if err != nil {
 		log.Println(err)
 		return "", err

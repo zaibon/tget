@@ -22,24 +22,37 @@ const (
 
 // BetaSeries is the main object that give acces to the BetaSeries API
 type BetaSeries struct {
-	baseURL string
-	version string
-	apiKey  string
+	baseURL  string
+	version  string
+	apiKey   string
+	token    string
+	login    string
+	password string
 }
 
 // New creates a new BetaSeries object.
-func New(APIKey string) *BetaSeries {
-	return &BetaSeries{
-		baseURL: betaseriesBaseURL,
-		version: version,
-		apiKey:  APIKey,
+func New(APIKey string, login, password string) *BetaSeries {
+	bs := &BetaSeries{
+		baseURL:  betaseriesBaseURL,
+		version:  version,
+		apiKey:   APIKey,
+		login:    login,
+		password: password,
 	}
+
+	if login != "" && password != "" {
+		bs.getToken()
+	}
+	return bs
 }
 
 func (b *BetaSeries) do(req *http.Request) (*http.Response, error) {
-	req.Header.Set("X-BetaSeries-Key", b.apiKey)
-	req.Header.Set("X-BetaSeries-Version", b.version)
 	req.Header.Set("Accept", "application/json")
+	req.Header.Set("X-BetaSeries-Version", b.version)
+	req.Header.Set("X-BetaSeries-Key", b.apiKey)
+	if b.token != "" {
+		req.Header.Set("X-BetaSeries-Token", b.token)
+	}
 
 	return http.DefaultClient.Do(req)
 }
@@ -91,8 +104,8 @@ func (b *BetaSeries) Show(title string) (*Show, error) {
 	return &data.Shows[0], nil
 }
 
-// Episodes returns a list of Episode
-func (b *BetaSeries) Episodes(title string, season, episode int) ([]Episode, error) {
+// Episode returns the information about an episode
+func (b *BetaSeries) Episode(title string, season, episode int) (*Episode, error) {
 	u, err := url.Parse(b.baseURL + "/shows/episodes")
 	if err != nil {
 		log.Fatal(err)
@@ -128,7 +141,7 @@ func (b *BetaSeries) Episodes(title string, season, episode int) ([]Episode, err
 	}
 
 	data := struct {
-		Episodes []Episode
+		Episodes []*Episode
 	}{}
 
 	defer resp.Body.Close()
@@ -137,7 +150,43 @@ func (b *BetaSeries) Episodes(title string, season, episode int) ([]Episode, err
 		return nil, err
 	}
 
-	return data.Episodes, nil
+	return data.Episodes[0], nil
+}
+
+// MarkDownloaded mark an episode as download
+func (b *BetaSeries) MarkDownloaded(title string, season, episode int) error {
+	ep, err := b.Episode(title, season, episode)
+	if err != nil {
+		return err
+	}
+
+	u, err := url.Parse(b.baseURL + "/episodes/downloaded")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	q := u.Query()
+	q.Set("id", fmt.Sprintf("%d", ep.ID))
+	u.RawQuery = q.Encode()
+
+	req, err := http.NewRequest("POST", u.String(), nil)
+	if err != nil {
+		log.Printf("Error marking episode as downloaded: %v", err.Error())
+		return err
+	}
+
+	resp, err := b.do(req)
+	if err != nil {
+		log.Printf("Error marking episode as downloaded: %v", err.Error())
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		apiErr := decodeErr(resp.Body)
+		log.Fatalf("MarkDownloaded bad response code: %v", apiErr.Error())
+		return apiErr
+	}
+
+	return nil
 }
 
 func decodeErr(r io.Reader) (err errAPI) {

@@ -19,13 +19,23 @@ import (
 	"github.com/zaibon/tget/api/t411"
 )
 
-func downloadShow(title string) error {
+var (
+	t411API   *t411.T411
+	bsAPI     *betaseries.BetaSeries
+	outputDir string
+)
+
+func init() {
 	cfg := loadConfig()
 
-	t411API := t411.New(cfg.T411Token)
-	bs := betaseries.New(cfg.BetaseriesToken)
+	t411API = t411.New(cfg.T411.Token)
+	bsAPI = betaseries.New(cfg.Betaseries.APIKey, cfg.Betaseries.Login, cfg.Betaseries.Password)
+	outputDir = cfg.TorrentDirectory
+}
 
-	show, err := bs.Show(title)
+func downloadShow(title string) error {
+
+	show, err := bsAPI.Show(title)
 	if err != nil {
 		log.Printf("Error search information about the show: %v", err.Error())
 		return err
@@ -38,7 +48,7 @@ func downloadShow(title string) error {
 			wg.Add(1)
 			go func(title string, season, episode int) {
 				defer wg.Done()
-				download(title, season, episode, cfg.TorrentDirectory, t411API)
+				download(title, season, episode, outputDir)
 			}(title, season, episode)
 		}
 	}
@@ -49,11 +59,8 @@ func downloadShow(title string) error {
 }
 
 func downloadSaison(title string, season int) error {
-	cfg := loadConfig()
-	t411API := t411.New(cfg.T411Token)
-	bs := betaseries.New(cfg.BetaseriesToken)
 
-	show, err := bs.Show(title)
+	show, err := bsAPI.Show(title)
 	if err != nil {
 		log.Printf("Error search information about the show: %v", err.Error())
 		return err
@@ -67,7 +74,7 @@ func downloadSaison(title string, season int) error {
 		wg.Add(1)
 		go func(title string, season, episode int) {
 			defer wg.Done()
-			download(title, season, episode, cfg.TorrentDirectory, t411API)
+			download(title, season, episode, outputDir)
 		}(title, season, episode)
 	}
 
@@ -78,13 +85,10 @@ func downloadSaison(title string, season int) error {
 }
 
 func downloadEpisode(title string, season, episode int) error {
-	cfg := loadConfig()
-	t411API := t411.New(cfg.T411Token)
-
-	return download(title, season, episode, cfg.TorrentDirectory, t411API)
+	return download(title, season, episode, outputDir)
 }
 
-func download(title string, season int, episode int, destDir string, t411API *t411.T411) error {
+func download(title string, season int, episode int, destDir string) error {
 	name := fmt.Sprintf("%s_S%02dE%02d", title, season, episode)
 	log.Printf("download %s", name)
 
@@ -99,6 +103,11 @@ func download(title string, season int, episode int, destDir string, t411API *t4
 		log.Printf("Error moving %s to %s : %v", oldPath, newPath, err)
 		return err
 	}
+
+	if err := bsAPI.MarkDownloaded(title, season, episode); err != nil {
+		log.Printf("Could not mark episode as downloaded :%v", err)
+	}
+
 	log.Printf("%s save at %s", name, newPath)
 
 	return nil

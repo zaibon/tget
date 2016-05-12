@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -12,17 +13,23 @@ import (
 )
 
 type config struct {
-	BetaseriesToken  string
-	T411Token        string
 	TorrentDirectory string
+	T411             struct {
+		Token string
+	}
+	Betaseries struct {
+		Login    string
+		Password string
+		APIKey   string
+	}
 }
 
 func loadConfig() (config config) {
 	home := os.Getenv("HOME")
-	f, err := os.Open(filepath.Join(home, ".autot411.toml"))
+	f, err := os.Open(filepath.Join(home, ".tget.toml"))
 	if err != nil {
 		if os.IsNotExist(err) {
-			fmt.Println("Please run autot411 config to configure the app.")
+			fmt.Printf("Please create configuration file at %s", f.Name())
 			os.Exit(1)
 		} else {
 			log.Fatal(err)
@@ -41,76 +48,61 @@ func main() {
 	app.Name = "autot411"
 
 	var (
-		title      string
-		season     int
-		episode    int
-		t411Auth   t411.AuthPair
-		bsToken    string
-		torrentDir string
-		auto       = false
+		title    string
+		season   int
+		episode  int
+		t411Auth t411.AuthPair
+		auto     = false
 	)
 
 	app.Commands = []cli.Command{
 		{
-			Name:  "config",
-			Usage: "configure API access to betaseries and t411",
+			Name:  "t411-auth",
+			Usage: "get t411 token",
 			Flags: []cli.Flag{
 				cli.StringFlag{
-					Name:        "t411-username",
+					Name:        "u,username",
 					Usage:       "t411 username",
 					Destination: &t411Auth.Username,
 				},
 				cli.StringFlag{
-					Name:        "t411-password",
+					Name:        "p, password",
 					Usage:       "t411 password",
 					Destination: &t411Auth.Password,
-				},
-				cli.StringFlag{
-					Name:        "bs-token",
-					Usage:       "betaseries API key. go to https://www.betaseries.com/api/ to get one",
-					Destination: &bsToken,
-				},
-				cli.StringFlag{
-					Name:        "output",
-					Usage:       "directory where to save the downloaded torrents",
-					Destination: &torrentDir,
 				},
 			},
 			Action: func(c *cli.Context) {
 
-				if bsToken == "" || t411Auth.Username == "" || t411Auth.Password == "" || torrentDir == "" {
+				if t411Auth.Username == "" || t411Auth.Password == "" {
 					fmt.Println("Missing arguments")
 					return
 				}
 
-				if _, err := os.Stat(torrentDir); err != nil {
-					if os.IsNotExist(err) {
-						os.MkdirAll(torrentDir, 0775)
+				var err error
+				cfg := config{}
+
+				home := os.Getenv("HOME")
+				path := filepath.Join(home, ".tget.toml")
+
+				data, err := ioutil.ReadFile(path)
+				if err == nil {
+					if err = toml.Unmarshal(data, &cfg); err != nil {
+						log.Fatal(err)
 					}
 				}
 
-				var err error
-				cfg := config{
-					BetaseriesToken:  bsToken,
-					TorrentDirectory: torrentDir,
-				}
-
-				cfg.T411Token, err = t411.Auth(t411Auth)
+				cfg.T411.Token, err = t411.Auth(t411Auth)
 				if err != nil {
 					log.Fatal(err)
 				}
 
-				home := os.Getenv("HOME")
-				path := filepath.Join(home, ".autot411.toml")
-				fmt.Println("Write config file to ", path)
-				f, err := os.OpenFile(filepath.Join(home, ".autot411.toml"), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0660)
-				if err != nil {
+				if data, err = toml.Marshal(cfg); err != nil {
 					log.Fatal(err)
 				}
-				if err := toml.NewEncoder(f).Encode(cfg); err != nil {
+				if err = ioutil.WriteFile(path, data, 0660); err != nil {
 					log.Fatal(err)
 				}
-				fmt.Println("Configuration done.")
+				log.Printf("config file updated (%s)", path)
 			},
 		},
 		{
