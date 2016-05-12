@@ -5,25 +5,36 @@ tget is a small CLI that helps you download the torrents of your favorite TV sho
 
 tget is greatly inspired by https://github.com/Hito01/t411-cli
 ## Install
-```
+```sh
 go get -u github.com/zaibon/tget
 ```
 
 ## Configuration
-tget uses https://www.betaseries.com/ and http://www.t411.me/ respectivly as source of metadata and torrent. Before beeing able to use tget you need to create a configuration file.  tget provide a command to help you create this config file
+tget uses https://www.betaseries.com/ and http://www.t411.me/ respectively as source of metadata and torrent. Before being able to use tget you need to create a configuration file that old information from these two platforms.
+```toml
+torrent_directory="ssh://user@host:22/home/user/torrents"
+[t411]
+token="814529:132:9a0bfhu5e7f96f38ef21e0ecde11342f"
+[betaseries]
+login="user"
+password="supersecret"
+APIKey="8134c1956b70"
+
 ```
-tget config --t411-username toto --t411-password supersecret --bs-token 2345345 --output /home/user/downloads/torrents
-```
-`--t411-username` 	t411 username  
-`--t411-password` 	t411 password  
-`--bs-token` 		betaseries API key. go to https://www.betaseries.com/api/ to get one  
-`--output` 		directory where to save the downloaded torrents  
+- Global 
+`torrent_directory` : defined where to store the downloaded torrent. Format supported are:
+  - local. `/home/user/torrents`
+  - remote `ssh://user@host:22/home/user/torrents`  
+remote try to use ssh-agent if loaded to access your ssh keys.
 
-Output directory can be on a remote server.
-File copy is done over ssh. In the configuration, the torrent directory can be under the form
-`ssh://root@myserver:22/tmp`. tget uses the key loaded in your ssh-agent if there is one running.
+- T411  
+`token` : API token from T411. you can automaticly get it using tget :
+`t411-auth -u user -p password`
 
-
+- Betaseries  
+`login` : optional, only needed if you want to mark torrent as retreived  
+`password`: optional, only needed if you want to mark torrent as retreived  
+`APIKey`: required, you can get one from https://www.betaseries.com/api/
 
 ## Usage
 tget support download of a full show a season or an episode.
