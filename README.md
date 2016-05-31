@@ -12,26 +12,39 @@ go get -u github.com/zaibon/tget
 ## Configuration
 tget uses https://www.betaseries.com/ and http://www.t411.me/ respectively as source of metadata and torrent. Before being able to use tget you need to create a configuration file that old information from these two platforms.
 ```toml
-torrent_directory="ssh://user@host:22/home/user/torrents"
+[torrent]
+output_dir="ssh://user@host:22/home/user/torrents"
+language="vostfr"
 [t411]
 token="814529:132:9a0bfhu5e7f96f38ef21e0ecde11342f"
 [betaseries]
 login="user"
 password="supersecret"
 APIKey="8134c1956b70"
-
 ```
-- Global 
-`torrent_directory` : defined where to store the downloaded torrent. Format supported are:
+- torrent  
+`language`: Set your prefered language.  You can choose between:
+  - anglais
+  - français
+  - muet
+  - multi-fr
+  - multi-qb
+  - québécois
+  - vfstfr
+  - vostfr
+  - voasta
+
+  `output_dir` : defined where to store the downloaded torrent. Format supported are:
   - local. `/home/user/torrents`
   - remote `ssh://user@host:22/home/user/torrents`  
 remote try to use ssh-agent if loaded to access your ssh keys.
 
-- T411  
+
+- t411  
 `token` : API token from T411. you can automaticly get it using tget :
 `t411-auth -u user -p password`
 
-- Betaseries  
+- betaseries  
 `login` : optional, only needed if you want to mark torrent as retreived  
 `password`: optional, only needed if you want to mark torrent as retreived  
 `APIKey`: required, you can get one from https://www.betaseries.com/api/
