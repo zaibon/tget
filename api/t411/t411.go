@@ -99,11 +99,12 @@ func Auth(AuthPair AuthPair) (string, error) {
 
 // DownloadTorrent search the torrent corresponding to the title,
 // season and episode number, download it and return the location of the file.
-func (t *T411) DownloadTorrent(title string, season, episode int) (string, error) {
+func (t *T411) DownloadTorrent(title string, season, episode int, language string) (string, error) {
 	req := searchReq{
-		Title:   title,
-		Season:  season,
-		Episode: episode,
+		Title:    title,
+		Season:   season,
+		Episode:  episode,
+		Language: language,
 	}
 
 	torrents, err := t.search(req)

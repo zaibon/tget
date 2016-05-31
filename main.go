@@ -13,8 +13,11 @@ import (
 )
 
 type config struct {
-	TorrentDirectory string
-	T411             struct {
+	Torrent struct {
+		OutputDir string
+		Language  string
+	}
+	T411 struct {
 		Token string
 	}
 	Betaseries struct {

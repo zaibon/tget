@@ -20,17 +20,16 @@ import (
 )
 
 var (
-	t411API   *t411.T411
-	bsAPI     *betaseries.BetaSeries
-	outputDir string
+	t411API *t411.T411
+	bsAPI   *betaseries.BetaSeries
+	cfg     config
 )
 
 func init() {
-	cfg := loadConfig()
+	cfg = loadConfig()
 
 	t411API = t411.New(cfg.T411.Token)
 	bsAPI = betaseries.New(cfg.Betaseries.APIKey, cfg.Betaseries.Login, cfg.Betaseries.Password)
-	outputDir = cfg.TorrentDirectory
 }
 
 func downloadShow(title string) error {
@@ -48,7 +47,7 @@ func downloadShow(title string) error {
 			wg.Add(1)
 			go func(title string, season, episode int) {
 				defer wg.Done()
-				download(title, season, episode, outputDir)
+				download(title, season, episode)
 			}(title, season, episode)
 		}
 	}
@@ -74,7 +73,7 @@ func downloadSaison(title string, season int) error {
 		wg.Add(1)
 		go func(title string, season, episode int) {
 			defer wg.Done()
-			download(title, season, episode, outputDir)
+			download(title, season, episode)
 		}(title, season, episode)
 	}
 
@@ -85,20 +84,20 @@ func downloadSaison(title string, season int) error {
 }
 
 func downloadEpisode(title string, season, episode int) error {
-	return download(title, season, episode, outputDir)
+	return download(title, season, episode)
 }
 
-func download(title string, season int, episode int, destDir string) error {
+func download(title string, season int, episode int) error {
 	name := fmt.Sprintf("%s_S%02dE%02d", title, season, episode)
 	log.Printf("download %s", name)
 
-	oldPath, err := t411API.DownloadTorrent(title, season, episode)
+	oldPath, err := t411API.DownloadTorrent(title, season, episode, cfg.Torrent.Language)
 	if err != nil {
 		log.Printf("Error downloading %s: %v", name, err)
 		return err
 	}
 
-	newPath := storePath(destDir, name)
+	newPath := storePath(cfg.Torrent.OutputDir, name)
 	if err = move(oldPath, newPath); err != nil {
 		log.Printf("Error moving %s to %s : %v", oldPath, newPath, err)
 		return err

@@ -12,10 +12,22 @@ import (
 // Season and episode number also have specific ID. init method creates the mapping
 
 var (
-	catSeasonID  = 45
-	catEpisodeID = 46
-	seasonNbrID  = map[int]int{}
-	episodeNbrID = map[int]int{}
+	catSeasonID   = 45
+	catEpisodeID  = 46
+	catLanguageID = 51
+	seasonNbrID   = map[int]int{}
+	episodeNbrID  = map[int]int{}
+	languageMap   = map[string]int{
+		"anglais":   1209,
+		"français":  1210,
+		"muet":      1211,
+		"multi-fr":  1212,
+		"multi-qb":  1213,
+		"québécois": 1214,
+		"vfstfr":    1215,
+		"vostfr":    1216,
+		"voasta":    1217,
+	}
 )
 
 func init() {
@@ -28,9 +40,10 @@ func init() {
 }
 
 type searchReq struct {
-	Title   string
-	Season  int
-	Episode int
+	Title    string
+	Season   int
+	Episode  int
+	Language string
 }
 
 // URL returns the url of the search request
@@ -45,6 +58,10 @@ func (r searchReq) URL() string {
 	}
 	if r.Episode > 0 {
 		q.Add(fmt.Sprintf("term[%d][]", catEpisodeID), fmt.Sprintf("%d", episodeNbrID[r.Episode]))
+	}
+	if ID, ok := languageMap[r.Language]; ok {
+		q.Add(fmt.Sprintf("term[%d][]", catLanguageID), fmt.Sprintf("%d", ID))
+
 	}
 	u.RawQuery = q.Encode()
 
