@@ -119,7 +119,7 @@ func (t *T411) DownloadTorrent(title string, season, episode int, language strin
 
 	sort.Sort(BySeeder{torrents})
 
-	r, err := t.download(torrents[0].ID)
+	r, err := t.download(torrents[len(torrents)-1].ID)
 	if err != nil {
 		return "", err
 	}
