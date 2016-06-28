@@ -22,24 +22,48 @@ func TestAuth(t *testing.T) {
 }
 
 func TestReqURL(t *testing.T) {
-	req := searchReq{
-		Title:   "vikings",
-		Season:  1,
-		Episode: 1,
+	type output struct {
+		Title   string
+		Season  int
+		Episode int
+		URL     string
+	}
+	tt := []struct {
+		input  searchReq
+		expect output
+	}{
+		{
+			input: searchReq{
+				Title:   "vikings",
+				Season:  1,
+				Episode: 1,
+			},
+			expect: output{
+				Title:   "vikings",
+				Season:  1,
+				Episode: 1,
+				URL:     "https://api.t411.ch/torrents/search/vikings?term%5B45%5D%5B%5D=968&term%5B46%5D%5B%5D=937",
+			},
+		},
+		{
+			input: searchReq{
+				Title:   "vikings",
+				Season:  3,
+				Episode: 11,
+			},
+			expect: output{
+				Title:   "vikings",
+				Season:  3,
+				Episode: 11,
+				URL:     "https://api.t411.ch/torrents/search/vikings?term%5B45%5D%5B%5D=970&term%5B46%5D%5B%5D=948",
+			},
+		},
 	}
 
-	assert.Equal(t, "vikings", req.Title)
-	assert.Equal(t, 1, req.Season)
-	assert.Equal(t, 1, req.Episode)
-
-	expected := "https://api.t411.ch/torrents/search/vikings?term%5B45%5D%5B%5D=968&term%5B46%5D%5B%5D=937"
-	assert.Equal(t, expected, req.URL())
-
-	req = searchReq{
-		Title:   "vikings",
-		Season:  3,
-		Episode: 5,
+	for _, test := range tt {
+		assert.Equal(t, test.expect.Title, test.input.Title)
+		assert.Equal(t, test.expect.Episode, test.input.Episode)
+		assert.Equal(t, test.expect.Season, test.input.Season)
+		assert.Equal(t, test.expect.URL, test.input.URL())
 	}
-	expected = "https://api.t411.ch/torrents/search/vikings?term%5B45%5D%5B%5D=970&term%5B46%5D%5B%5D=941"
-	assert.Equal(t, expected, req.URL())
 }
