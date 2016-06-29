@@ -2,6 +2,7 @@
 import json
 from os.path import dirname, join
 
+
 def main():
     path = join(dirname(__file__), 't411_terms.json')
     with open(path) as f:
@@ -36,7 +37,8 @@ def main():
         except ValueError:
             continue
 
-    with open('mapping.json', 'w+') as f:
+    path = join(dirname(__file__), 'mapping.json')
+    with open(path, 'w+') as f:
         json.dump(out, f, indent=4)
 
 if __name__ == '__main__':
