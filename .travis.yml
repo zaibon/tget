@@ -3,3 +3,9 @@ language: go
 go:
   - 1.6
   - tip
+
+install:
+    - go get -u github.com/jteeuwen/go-bindata/...
+
+script:
+    - make test

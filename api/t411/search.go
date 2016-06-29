@@ -1,4 +1,4 @@
-//go:generate go-bindata -prefix ../../scripts/ -pkg t411 ../../scripts/mapping.json
+//go:generate go-bindata -nometadata -prefix ../../scripts/ -pkg t411 ../../scripts/mapping.json
 
 package t411
 
