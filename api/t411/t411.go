@@ -81,12 +81,17 @@ func Auth(AuthPair AuthPair) (string, error) {
 
 	data := struct {
 		Token string `json:"token"`
+		Error string `json:"error"`
 	}{}
 
 	defer resp.Body.Close()
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
 		log.Println("Error decoding json auth response: ", err)
 		return "", err
+	}
+
+	if data.Error != "" {
+		return "", fmt.Errorf(data.Error)
 	}
 
 	if data.Token == "" {
@@ -183,11 +188,15 @@ func (t *T411) search(searchReq searchReq) ([]Torrent, error) {
 
 	data := struct {
 		Torrents []Torrent `json:"torrents"`
+		Error    string    `json:"error"`
 	}{}
 
 	defer resp.Body.Close()
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
 		return nil, err
+	}
+	if data.Error != "" {
+		return nil, fmt.Errorf(data.Error)
 	}
 
 	return data.Torrents, nil
