@@ -12,8 +12,8 @@ generate:
 	go run scripts/extrac_term.go -login '$(T411_USERNAME)' -password '$(T411_PASSWORD)'
 	go generate ./api/t411
 
-test: generate
-	go test ./api/...
+test:
+	go test ./...
 
 clean:
-	rm scripts/mapping.json api/t411/bindata.go tget
+	rm scripts/mapping.json tget
