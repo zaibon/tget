@@ -9,6 +9,10 @@ tget is greatly inspired by https://github.com/Hito01/t411-cli
 go get -u github.com/zaibon/tget
 ```
 
+## Build
+To build from scratch simply use the Makefile provided. You just need to fill the `credentials.mk` file with the credentials of T411. This is used in the building process to retrieve some information about the T411 API and bundle it into the binary.
+Then simply do a `make`
+
 ## Configuration
 tget uses https://www.betaseries.com/ and http://www.t411.me/ respectively as source of metadata and torrent. Before being able to use tget you need to create a configuration file that old information from these two platforms.
 ```toml

@@ -1,3 +1,4 @@
+include credentials.mk
 
 all: build
 
@@ -7,8 +8,8 @@ install: generate
 build: generate
 	go build
 
-generate: scripts/t411_terms.json scripts/extract_term.py
-	scripts/extract_term.py
+generate:
+	go run scripts/extrac_term.go -login '$(T411_USERNAME)' -password '$(T411_PASSWORD)'
 	go generate ./api/t411
 
 test: generate
